@@ -2,9 +2,10 @@ import requests
 
 
 class DifyClient:
-    def __init__(self, api_key):
+    def __init__(self, api_key, proxies=None):
         self.api_key = api_key
         self.base_url = "https://api.dify.ai/v1"
+        self.proxies = proxies or {}
 
     def _send_request(self, method, endpoint, data=None, params=None, stream=False):
         headers = {
@@ -13,7 +14,8 @@ class DifyClient:
         }
 
         url = f"{self.base_url}{endpoint}"
-        response = requests.request(method, url, json=data, params=params, headers=headers, stream=stream)
+        response = requests.request(method, url, json=data, params=params, headers=headers, stream=stream,
+                                    proxies=self.proxies)
 
         return response
 
@@ -37,7 +39,8 @@ class CompletionClient(DifyClient):
             "response_mode": response_mode,
             "user": user
         }
-        return self._send_request("POST", "/completion-messages", data, stream=True if response_mode == "streaming" else False)
+        stream = response_mode == "streaming"
+        return self._send_request("POST", "/completion-messages", data, stream=stream)
 
 
 class ChatClient(DifyClient):
@@ -50,8 +53,8 @@ class ChatClient(DifyClient):
         }
         if conversation_id:
             data["conversation_id"] = conversation_id
-
-        return self._send_request("POST", "/chat-messages", data, stream=True if response_mode == "streaming" else False)
+        stream = response_mode == "streaming"
+        return self._send_request("POST", "/chat-messages", data, stream=stream)
 
     def get_conversation_messages(self, user, conversation_id=None, first_id=None, limit=None):
         params = {"user": user}
